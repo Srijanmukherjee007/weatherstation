@@ -16,14 +16,19 @@ const io = new Server(server);
 
 
 let IOT_ACTIVE = false;
-const IOT_KEY = "*2138192AHKHSBANM%^#@!@#^%&$%"; // TODO store in env
+const IOT_KEY  = "*2138192AHKHSBANM%^#@!@#^%&$%"; // TODO store in env
 
 const CLIENT_ROOM = "client";
-const IOT_ROOM = "iot";
-const DATA_PROTOCOL = {
+const IOT_ROOM    = "iot";
+const DATA_PROTOCOL = Object.freeze({
     temperature: Number,
     humidity: Number
-};
+});
+
+let prevData = Object.keys(DATA_PROTOCOL).reduce((obj, key) => {
+    obj[key] = null
+    return obj;
+}, {});
 
 function respondError(message) {
     return {
@@ -37,26 +42,84 @@ function respondSuccess(message) {
     };
 }
 
+function validateData(protocol, data) {
+    if (!data) return { validatedError: null, error: "invalid request" };
+
+    let errors = [];
+    const validatedData = {};
+
+    for (const key in protocol) {
+        if (!data[key]) errors.push(`'${key}' not provided`);
+        else if (protocol[key](data[key]) != data[key]) errors.push(`'${key}' has invalid datatype`);
+        else validatedData[key] = protocol[key](data[key]);
+    }
+
+    return {
+        validatedData,
+        error: errors.length == 0 ? null : errors,
+    };
+}
+
+function timestamp() {
+    const date = new Date();
+    return `${date.toLocaleTimeString()} ${date.toLocaleDateString()}`;
+}
+
 io.on("connection", (socket) => {
     socket.join(CLIENT_ROOM);
+    socket.isIOT = false;
+
+    socket.emit("update", prevData);
+    socket.emit("weather-station-status", IOT_ACTIVE);
 
     // register weather station
     socket.on("upgrade", (req) => {
         const upgradeKey = req["UPGRADE-KEY"];
 
         if (!upgradeKey || upgradeKey !== IOT_KEY) {
-            return socket.send(respondError("upgrade failed"));
+            return socket.emit("upgrade-error", respondError("upgrade failed"));
         }
 
         socket.leave(CLIENT_ROOM);
         socket.join(IOT_ROOM);
-        socket.send(respondSuccess("upgraded"));
+        socket.isIOT = true;
+        socket.emit("upgrade-success", respondSuccess("upgraded"));
+        
+        IOT_ACTIVE = true;
+
+        io.to(CLIENT_ROOM).emit("weather-station-connected");
+        console.log(`[${timestamp()}] IOT UPGRADE weather station connected`);
     });
 
+    // receive weather station update
     socket.on("update", (req) => {
-        console.log(socket.rooms);
+        if (!socket.isIOT) {
+            return socket.emit("update-error", respondError("you don't have authority to publish data"));
+        }
+
+        const { validatedData, error } = validateData(DATA_PROTOCOL, req);
+
+        if (error) {
+            return socket.emit("update-error", respondError(error));
+        }
+
+        validatedData["timestamp"] = new Date().toUTCString();
+        prevData = validatedData;
+
+        console.log(validatedData);
+
+        io.to(CLIENT_ROOM).emit("update", validatedData);
+    });
+
+    socket.on("disconnect", () => {
+        if (socket.isIOT) {
+            IOT_ACTIVE = false;
+            console.log(`[${timestamp()}] IOT weather station disconnected`);
+            io.to(CLIENT_ROOM).emit("weather-station-disconnected");
+        }
     })
-})
+});
 
-
-server.listen(8080);
+server.listen(8080, () => {
+    console.log(`[${timestamp()}] Listening on :8080`);
+});
