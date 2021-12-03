@@ -6,8 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Srijan's Weather Station</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
 </head>
 <body>
+
+    <div class="container">
+        <div class="loader" id="loader">
+            <img src="img/loader.svg" alt="loading...">
+        </div>
+        <div id="server_status" class="hidden"></div>
+        <div class="information hidden" id="information">
+            <div class="temperature" title="temperature"><span class="value"></span><span class="symbol">&deg;C</span></div>
+            <div class="humidity" title="humidity">
+                <img class="icon" src="img/humidity.svg" alt="humidity" />
+                <span class="value"></span>
+            </div>
+            <div class="location">Not Available</div>
+            <div class="last_update">
+                Last Updated: Not Available
+            </div>
+        </div>
+        <div class="pop_up_message hidden"></div>
+    </div>
 
     <script src="js/main.js"></script>
 </body>

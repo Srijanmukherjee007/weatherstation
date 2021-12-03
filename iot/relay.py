@@ -1,10 +1,12 @@
 from asyncio.runners import run
 from threading import Thread, Lock
 import socketio
-import random
+import serial
+import json
 import time
 
 io = socketio.Client()
+arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
 
 IOT_KEY = "*2138192AHKHSBANM%^#@!@#^%&$%"
 
@@ -12,15 +14,17 @@ running: bool = False
 serial_thread: Thread = None
 
 def serial_thread_worker():
-    global running
+    global running, arduino
     print("serial thread running")
 
     while running:
-        io.emit("update", {
-            "temperature": random.randint(10, 100),
-            "humidity": random.randint(10, 50)
-        })
-        
+        data = arduino.readline().decode("utf-8").strip()
+        if data:
+            json_data = json.loads(data)
+            io.emit("update", {
+                "temperature": json_data["temperature"],
+                "humidity": json_data["humidity"]
+            })
         time.sleep(2)
 
     print("serial threading stopping")
@@ -41,7 +45,8 @@ def stop_serial_thread():
 def connect():
     print("[socketio] connected to server")
     io.emit("upgrade", {
-        "UPGRADE-KEY": IOT_KEY
+        "UPGRADE-KEY": IOT_KEY,
+        "location": "Srijan's Home"
     })
 
 @io.on("upgrade-success")

@@ -12,7 +12,11 @@ const server = http.createServer((_, res) => {
 });
 
 const { Server } = require("socket.io");
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*"
+    }
+});
 
 
 let IOT_ACTIVE = false;
@@ -68,6 +72,7 @@ function timestamp() {
 io.on("connection", (socket) => {
     socket.join(CLIENT_ROOM);
     socket.isIOT = false;
+    socket.iotLocation = null;
 
     socket.emit("update", prevData);
     socket.emit("weather-station-status", IOT_ACTIVE);
@@ -75,14 +80,16 @@ io.on("connection", (socket) => {
     // register weather station
     socket.on("upgrade", (req) => {
         const upgradeKey = req["UPGRADE-KEY"];
+        const location = req["location"];
 
-        if (!upgradeKey || upgradeKey !== IOT_KEY) {
+        if (!upgradeKey || upgradeKey !== IOT_KEY || !location) {
             return socket.emit("upgrade-error", respondError("upgrade failed"));
         }
 
         socket.leave(CLIENT_ROOM);
         socket.join(IOT_ROOM);
         socket.isIOT = true;
+        socket.iotLocation = location;
         socket.emit("upgrade-success", respondSuccess("upgraded"));
         
         IOT_ACTIVE = true;
@@ -104,6 +111,7 @@ io.on("connection", (socket) => {
         }
 
         validatedData["timestamp"] = new Date().toUTCString();
+        validatedData["location"] = socket.iotLocation;
         prevData = validatedData;
 
         console.log(validatedData);
