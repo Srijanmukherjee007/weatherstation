@@ -69,7 +69,7 @@ def disconnected():
     stop_serial_thread()
 
 def main():
-    io.connect("http://localhost:8080")
+    io.connect("https://weather-station-relay-server.herokuapp.com/")
     io.wait()
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 ((global) => {
     document.addEventListener("DOMContentLoaded", main);
-    const server = "http://localhost:8080";
+    const server = "https://weather-station-relay-server.herokuapp.com/";
 
     function main() {
         const socket = io(server);
