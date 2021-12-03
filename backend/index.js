@@ -14,7 +14,7 @@ const server = http.createServer((_, res) => {
 const { Server } = require("socket.io");
 const io = new Server(server, {
     cors: {
-        origin: "*"
+        origin: "https://weatherstation-theta.vercel.app"
     }
 });
 
