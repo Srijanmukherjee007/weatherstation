@@ -1,0 +1,20 @@
+{
+  "name": "srijanweatherstation_backend",
+  "version": "1.0.0",
+  "description": "Backend relay server for data coming from IOT",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "backend",
+    "iot",
+    "websockets"
+  ],
+  "author": "Srijan Mukherjee <mukherjeesrijan2@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "http": "^0.0.1-security",
+    "socket.io": "^4.4.0"
+  }
+}
