@@ -1,13 +1,18 @@
 from asyncio.runners import run
 from threading import Thread, Lock
+from arduino import STORE_FILE as arduino_remember_cache, RememberedDeviceIsNotConnectedException, get_arduino_serial_connection
 import socketio
 import serial
 import json
 import time
 
-io = socketio.Client()
-arduino = serial.Serial(port="/dev/ttyACM0", baudrate=115200, timeout=0.1)
 
+io = socketio.Client()
+try:
+    arduino = get_arduino_serial_connection(baudrate=115200)
+except RememberedDeviceIsNotConnectedException as e:
+    print(f"[ERROR] {str(e)}")
+    print(f"        connect the arduino or remove the '{arduino_remember_cache}' file")
 IOT_KEY = "*2138192AHKHSBANM%^#@!@#^%&$%"
 
 running: bool = False
@@ -20,11 +25,15 @@ def serial_thread_worker():
     while running:
         data = arduino.readline().decode("utf-8").strip()
         if data:
-            json_data = json.loads(data)
-            io.emit("update", {
-                "temperature": json_data["temperature"],
-                "humidity": json_data["humidity"]
-            })
+            try:
+                json_data = json.loads(data)
+                io.emit("update", {
+                    "temperature": json_data["temperature"],
+                    "humidity": json_data["humidity"]
+                })
+            except json.JSONDecodeError:
+                print("[ERROR] Couldn't parse data from arduino")
+                print("incoming data: '%s'" % data)
         time.sleep(2)
 
     print("serial threading stopping")
